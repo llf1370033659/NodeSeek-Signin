@@ -229,7 +229,13 @@ def session_login(user, password, solver_type, api_base_url, client_key):
         response = session.post("https://www.nodeseek.com/api/account/signIn", json=data, headers=headers)
         resp_json = response.json()
         if resp_json.get("success"):
+            if resp_json.get("need2FA"):
+                print("登录需要二次验证（2FA），无法直接取得 Cookie")
+                return None
             cookies = session.cookies.get_dict()
+            if not cookies:
+                print("登录响应成功但没有 Cookie；响应字段:", ", ".join(resp_json.keys()))
+                return None
             cookie_string = '; '.join([f"{k}={v}" for k, v in cookies.items()])
             return cookie_string
         else:
