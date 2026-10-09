@@ -1,7 +1,5 @@
 name: CloudFreed 云端验证
 on:
-  push:
-    branches: [cloudfreed-actions]
   workflow_dispatch:
     inputs:
       mode:
