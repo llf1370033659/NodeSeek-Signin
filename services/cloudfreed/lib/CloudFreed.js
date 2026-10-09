@@ -1,10 +1,10 @@
-import validateURL from "./validateURL.js";
-import getDefaultChromePath from "./getDefaultChromePath.js";
-import getHomeDirectory from "./getHomeDirectory.js";
+import validateURL from "./ValidateURL.js";
+import getDefaultChromePath from "./GetDefaultChromePath.js";
+import getHomeDirectory from "./GetHomeDirectory.js";
 import delay from "./delay.js";
-import deleteTempUserDataFolders from "./deleteTempUserDataFolders.js";
-import findAvailablePort from "./findAvailablePort.js";
-import checkDebuggingEndpoint from "./checkDebuggingEndpoint.js";
+import deleteTempUserDataFolders from "./DeleteTempUserDataFolders.js";
+import findAvailablePort from "./FindAvailablePort.js";
+import checkDebuggingEndpoint from "./CheckDebuggingEndpoint.js";
 import killProcess from "./KillProcess.js";
 import Solve from "./Solve.js";
 
