@@ -233,6 +233,14 @@ def session_login(user, password, solver_type, api_base_url, client_key):
                 print("登录需要二次验证（2FA），无法直接取得 Cookie")
                 return None
             cookies = session.cookies.get_dict()
+            if not cookies and resp_json.get("redirect"):
+                from urllib.parse import urljoin, urlparse
+                destination = urljoin("https://www.nodeseek.com/", resp_json["redirect"])
+                parsed = urlparse(destination)
+                print("登录后跳转路径:", parsed.path)
+                if parsed.scheme == "https" and parsed.hostname in ("www.nodeseek.com", "nodeseek.com"):
+                    session.get(destination, timeout=30)
+                    cookies = session.cookies.get_dict()
             if not cookies:
                 print("登录响应成功但没有 Cookie；响应字段:", ", ".join(resp_json.keys()))
                 return None
