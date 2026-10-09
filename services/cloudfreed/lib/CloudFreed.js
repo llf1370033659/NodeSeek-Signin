@@ -113,9 +113,10 @@ class CloudFreed {
       // Launch Chrome in headless mode
       chromeProcess = spawn(chromium, chromeArgs, {
         detached: true,
-        stdio: "ignore",
+        stdio: ["ignore", "ignore", "pipe"],
       });
 
+      chromeProcess.stderr.on('data', data => console.error('Browser startup:', data.toString()));
       const pid = chromeProcess.pid;
       chromeProcess.unref();
 
