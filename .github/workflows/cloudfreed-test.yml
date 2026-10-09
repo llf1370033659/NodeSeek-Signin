@@ -44,7 +44,8 @@ jobs:
             xvfb-run -a python -u auto_signin.py --force-login
           else
             xvfb-run -a python -u auto_signin.py --probe
-          fi      - name: 服务失败诊断
+          fi
+      - name: 服务失败诊断
         if: failure()
         run: |
           if [ -f "$RUNNER_TEMP/cloudfreed-runtime/service.log" ]; then
