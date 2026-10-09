@@ -1,0 +1,58 @@
+name: CloudFreed 云端验证
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 验证模式
+        type: choice
+        options: [probe, login]
+        default: probe
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: 安装 Python 依赖
+        run: python -m pip install -r requirements-auto.txt
+      - name: 验证自动更新逻辑
+        run: python -m unittest discover -s tests -v
+      - name: 安装服务依赖
+        run: npm ci --prefix services/cloudfreed --ignore-scripts --no-audit --no-fund
+      - uses: browser-actions/setup-chrome@v2
+        id: browser
+        with:
+          chrome-version: stable
+      - name: 允许测试浏览器启动沙箱
+        env:
+          CHROME_PATH: ${{ steps.browser.outputs.chrome-path }}
+        run: |
+          CHROME_BIN=$(readlink -f "$CHROME_PATH")
+          printf 'abi <abi/4.0>,\ninclude <tunables/global>\nprofile nodeseek-cloudfreed "%s" flags=(unconfined) {\n  userns,\n}\n' "$CHROME_BIN" | sudo tee /etc/apparmor.d/nodeseek-cloudfreed >/dev/null
+          sudo apparmor_parser -r /etc/apparmor.d/nodeseek-cloudfreed
+      - name: 云端验证码与登录验证
+        env:
+          CLOUDFREED_BROWSER_PATH: ${{ steps.browser.outputs.chrome-path }}
+          USER1: ${{ secrets.USER1 }}
+          PASS1: ${{ secrets.PASS1 }}
+          GH_PAT: ${{ secrets.GH_PAT }}
+          NS_COOKIE: ${{ secrets.NS_COOKIE }}
+          PYTHONUTF8: '1'
+          MODE: ${{ inputs.mode || 'login' }}
+        run: |
+          if [ "$MODE" = "login" ]; then
+            xvfb-run -a python -u auto_signin.py --force-login
+          else
+            xvfb-run -a python -u auto_signin.py --probe
+          fi
+      - name: 服务失败诊断
+        if: failure()
+        run: |
+          if [ -f "$RUNNER_TEMP/cloudfreed-runtime/service.log" ]; then
+            tail -n 60 "$RUNNER_TEMP/cloudfreed-runtime/service.log"
+          fi

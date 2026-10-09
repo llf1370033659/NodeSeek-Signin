@@ -19,3 +19,5 @@ Thumbs.db
 # IDE/Editor configuration
 .vscode/
 .idea/
+# CloudFreed dependencies
+node_modules/

@@ -194,7 +194,7 @@ def session_login(user, password, solver_type, api_base_url, client_key):
         token = solver.solve(
             url="https://www.nodeseek.com/signIn.html",
             sitekey="0x4AAAAAAAaNy7leGjewpVyR",
-            verbose=True
+            verbose=False
         )
         if not token:
             print("验证码解析失败")
@@ -209,8 +209,6 @@ def session_login(user, password, solver_type, api_base_url, client_key):
     data = {
         "username": user,
         "password": password,
-        "token": token,
-        "source": "turnstile"
     }
     headers = {
         'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0",
@@ -223,13 +221,29 @@ def session_login(user, password, solver_type, api_base_url, client_key):
         'sec-fetch-dest': "empty",
         'referer': "https://www.nodeseek.com/signIn.html",
         'accept-language': "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6",
-        'Content-Type': "application/json"
+        'Content-Type': "application/json",
+        'x-captcha-token': token,
+        'x-captcha-source': 'turnstile',
     }
     try:
         response = session.post("https://www.nodeseek.com/api/account/signIn", json=data, headers=headers)
         resp_json = response.json()
         if resp_json.get("success"):
+            if resp_json.get("need2FA"):
+                print("登录需要二次验证（2FA），无法直接取得 Cookie")
+                return None
             cookies = session.cookies.get_dict()
+            if not cookies and resp_json.get("redirect"):
+                from urllib.parse import urljoin, urlparse
+                destination = urljoin("https://www.nodeseek.com/", resp_json["redirect"])
+                parsed = urlparse(destination)
+                print("登录后跳转路径:", parsed.path)
+                if parsed.scheme == "https" and parsed.hostname in ("www.nodeseek.com", "nodeseek.com"):
+                    session.get(destination, timeout=30)
+                    cookies = session.cookies.get_dict()
+            if not cookies:
+                print("登录响应成功但没有 Cookie；响应字段:", ", ".join(resp_json.keys()))
+                return None
             cookie_string = '; '.join([f"{k}={v}" for k, v in cookies.items()])
             return cookie_string
         else:
