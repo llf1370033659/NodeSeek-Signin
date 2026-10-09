@@ -30,6 +30,13 @@ jobs:
         id: browser
         with:
           chrome-version: stable
+      - name: 允许测试浏览器启动沙箱
+        env:
+          CHROME_PATH: ${{ steps.browser.outputs.chrome-path }}
+        run: |
+          CHROME_BIN=$(readlink -f "$CHROME_PATH")
+          printf 'abi <abi/4.0>,\ninclude <tunables/global>\nprofile nodeseek-cloudfreed "%s" flags=(unconfined) {\n  userns,\n}\n' "$CHROME_BIN" | sudo tee /etc/apparmor.d/nodeseek-cloudfreed >/dev/null
+          sudo apparmor_parser -r /etc/apparmor.d/nodeseek-cloudfreed
       - name: 云端验证码与登录验证
         env:
           CLOUDFREED_BROWSER_PATH: ${{ steps.browser.outputs.chrome-path }}
@@ -38,7 +45,7 @@ jobs:
           GH_PAT: ${{ secrets.GH_PAT }}
           NS_COOKIE: ${{ secrets.NS_COOKIE }}
           PYTHONUTF8: '1'
-          MODE: ${{ inputs.mode || 'probe' }}
+          MODE: ${{ inputs.mode || 'login' }}
         run: |
           if [ "$MODE" = "login" ]; then
             xvfb-run -a python -u auto_signin.py --force-login
