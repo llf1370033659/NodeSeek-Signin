@@ -25,7 +25,7 @@ class LocalCloudFreed:
         self.process = None
         self.log = None
         service_dir = ROOT / 'services' / 'cloudfreed'
-        runtime = Path(os.environ.get('RUNNER_TEMP', str(ROOT.parents[1] / 'work'))) / 'cloudfreed-runtime'
+        runtime = Path(os.environ.get('RUNNER_TEMP', str(ROOT / 'cookie'))) / 'cloudfreed-runtime'
         runtime.mkdir(parents=True, exist_ok=True)
         node = shutil.which('node')
         browser = os.environ.get('CLOUDFREED_BROWSER_PATH')
