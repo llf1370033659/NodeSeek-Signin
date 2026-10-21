@@ -94,8 +94,19 @@ def read_cookie():
     return os.environ.get('NS_COOKIE', '')
 
 
+def sign_with_retries(cookie, random_mode):
+    """Retry transient network failures without resubmitting account credentials."""
+    for attempt in range(1, 4):
+        status, message = sign(cookie, random_mode)
+        if status != 'error' or attempt == 3:
+            return status, message
+        delay = 60 * attempt
+        print(f'Network request failed ({attempt}/3); retrying in {delay} seconds', flush=True)
+        time.sleep(delay)
+
+
 def check_cookie():
-    status, message = sign(read_cookie(), os.environ.get('NS_RANDOM', 'true'))
+    status, message = sign_with_retries(read_cookie(), os.environ.get('NS_RANDOM', 'true'))
     if status in ('success', 'already'):
         print(f'Cookie sign-in OK: {message}')
         github_output(False)
@@ -156,7 +167,7 @@ def main():
             raise RuntimeError('NodeSeek login failed')
         if os.environ.get('GITHUB_ACTIONS') == 'true':
             print(f'::add-mask::{cookie}')
-        status, message = sign(cookie, os.environ.get('NS_RANDOM', 'true'))
+        status, message = sign_with_retries(cookie, os.environ.get('NS_RANDOM', 'true'))
         if status not in ('success', 'already'):
             raise RuntimeError(f'New Cookie sign-in failed ({status}): {message}')
         COOKIE_FILE.parent.mkdir(parents=True, exist_ok=True)

@@ -2,6 +2,8 @@
 
 > 本 Fork 当前使用 Windows 本地每日定时签到，Cookie 失效时按需启动 CloudFreed 自动重新登录。GitHub Actions 保留手动入口；本次云端登录要求邮箱验证，未启用无人值守续期。使用方法和验证结果见 [AUTO_SIGNIN.md](AUTO_SIGNIN.md)。
 
+本地定时与手动入口带请求重试，并在最终失败或超时时通过 QQ 邮箱 SMTP 发送提醒；成功及已签到时不发邮件。
+
 <div align="center">
   
 ![NodeSeek](https://img.shields.io/badge/NodeSeek-自动签到-green)
