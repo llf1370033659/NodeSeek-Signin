@@ -57,10 +57,34 @@ class AutomaticSignInTests(unittest.TestCase):
     def test_network_error_does_not_trigger_password_login(self):
         with patch.object(auto_signin, 'read_cookie', return_value='valid'), \
              patch.object(auto_signin, 'sign', return_value=('error', 'network failure')), \
+             patch.object(auto_signin.time, 'sleep'), \
              patch.object(auto_signin, 'github_output') as output:
             with self.assertRaisesRegex(RuntimeError, 'network failure'):
                 auto_signin.check_cookie()
             output.assert_not_called()
+
+    def test_network_error_can_recover_without_password_login(self):
+        with patch.object(auto_signin, 'sign', side_effect=[('error', 'timeout'), ('already', 'already signed')]) as request, \
+             patch.object(auto_signin.time, 'sleep') as sleep:
+            self.assertEqual(auto_signin.sign_with_retries('saved-cookie', 'true'), ('already', 'already signed'))
+            self.assertEqual(request.call_count, 2)
+            sleep.assert_called_once_with(60)
+
+    def test_network_retries_stop_after_three_attempts(self):
+        with patch.object(auto_signin, 'sign', return_value=('error', 'timeout')) as request, \
+             patch.object(auto_signin.time, 'sleep') as sleep:
+            self.assertEqual(auto_signin.sign_with_retries('saved-cookie', 'true'), ('error', 'timeout'))
+            self.assertEqual(request.call_count, 3)
+            self.assertEqual([call.args[0] for call in sleep.call_args_list], [60, 120])
+
+    def test_invalid_cookie_and_api_rejection_are_not_retried(self):
+        for result in [('invalid', 'expired'), ('fail', 'request rejected')]:
+            with self.subTest(result=result), \
+                 patch.object(auto_signin, 'sign', return_value=result) as request, \
+                 patch.object(auto_signin.time, 'sleep') as sleep:
+                self.assertEqual(auto_signin.sign_with_retries('saved-cookie', 'true'), result)
+                request.assert_called_once()
+                sleep.assert_not_called()
 
     def test_cloud_reads_secret_while_local_reuses_saved_cookie(self):
         with tempfile.TemporaryDirectory() as temp:
